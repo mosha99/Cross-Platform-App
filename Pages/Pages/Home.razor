@@ -1,0 +1,186 @@
+﻿@page "/"
+@using global::Pages.Interfaces
+@using System.Text.Json
+@using global::Pages.Models.StorageModel
+@using Microsoft.JSInterop
+
+@using Radzen.Blazor
+
+@inject NavigationManager Navigation;
+@inject IStorage Storage;
+@inject IJSRuntime JS
+
+<RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center">
+    <RadzenColumn>
+        <RadzenButton style="background-color: #376cbb; color: black;" Click="Add"> افزودن </RadzenButton>
+    </RadzenColumn>
+
+    <RadzenColumn>
+        <RadzenButton style="background-color: #376cbb; color: black;" Click="Input"> از فایل </RadzenButton>
+    </RadzenColumn>
+
+    <RadzenColumn>
+        <RadzenButton style="background-color: red; margin: 2px;" Click="() => {CanDelete = !CanDelete;}">
+            <RadzenIcon Icon="delete" />
+        </RadzenButton>
+    </RadzenColumn>
+
+</RadzenRow>
+<RadzenDataList Data="@ExercisePrograms" TItem="CustomProgram" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
+    <Template Context="EP">
+        <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px;">
+            <RadzenColumn>
+                <RadzenText TextAlign="TextAlign.Center" TextStyle="TextStyle.H6" TagName="TagName.H5" Class="rz-mb-0">@EP.Name</RadzenText>
+            </RadzenColumn>
+
+            <RadzenButton style="background-color: #30363d;" Click="@(()=>ClickOnP(EP.Id))"> مشاهده </RadzenButton>
+
+            <RadzenButton style="background-color: red; margin: 2px;" Visible="@CanDelete" Click="() => Delete(EP.Id)">
+                <RadzenIcon Icon="delete" />
+            </RadzenButton>
+
+            <RadzenButton style="background-color: #30363d; margin: 2px;" Click="() => Send(EP.Id)">
+                <RadzenIcon Icon="send" />
+            </RadzenButton>
+
+            <RadzenButton style="background-color: #30363d; margin: 2px;" Click="() => GetReport(EP.Id)">
+                <RadzenIcon Icon="print" />
+            </RadzenButton>
+
+
+
+        </RadzenRow>
+    </Template>
+</RadzenDataList>
+
+
+@code
+{
+    public bool CanDelete = false;
+
+    public List<CustomProgram> ExercisePrograms;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReLoad();
+        await base.OnInitializedAsync();
+    }
+
+    async Task ReLoad() => ExercisePrograms = await Storage.GetExercisePrograms();
+
+
+    private void ClickOnP(int Id)
+    {
+        Navigation.NavigateTo($"/View/{Id}");
+    }
+
+    private void Add()
+    {
+        Navigation.NavigateTo("/CreateProgram");
+    }
+
+    void OnProgress(UploadProgressArgs args, string name)
+    {
+        if (args.Progress == 100)
+        {
+            foreach (var file in args.Files)
+            {
+                Console.WriteLine(file);
+            }
+        }
+    }
+
+
+    private async Task Delete(int valueId)
+    {
+        await Storage.RemoveExercisePrograms(valueId);
+        await ReLoad();
+        CanDelete = false;
+    }
+
+    private async Task Send(int Id)
+    {
+        var result = await Storage.GetExerciseProgram(Id);
+        if (Share != null)
+        {
+            string data = JsonSerializer.Serialize(result);
+            await Share($"Backup_{Id}.json", data);
+        }
+    }
+
+    private async Task GetReport(int Id)
+    {
+        var result = await Storage.GetExerciseProgram(Id);
+        if (Report != null)
+        {
+            await Report(result);
+        }
+    }
+    public static Func<CustomProgram, Task>? Report;
+    public static Func<string, string, Task>? Share;
+
+    public static Func<Task<string>> PeakFile { get; set; }
+
+    private async Task Input()
+    {
+        if (PeakFile != null)
+        {
+            try
+            {
+                string result = await PeakFile();
+                CustomProgram? cp = JsonSerializer.Deserialize<CustomProgram>(result);
+                if (cp != null)
+                    await Storage.SaveCustomProgram(cp);
+            }
+            finally
+            {
+               await ReLoad();
+                await InvokeAsync(StateHasChanged);
+
+            }
+        }
+        else
+        {
+            await SetupCustomEventCallback();
+        }
+
+    }
+
+
+    public async Task SetupCustomEventCallback()
+    {
+
+        var Reference = DotNetObjectReference.Create(this);
+
+        await JS.InvokeVoidAsync("addCustomEventListener", new object?[] { Reference });
+    }
+
+    [JSInvokable]
+    public async Task FileInput(string obj)
+    {
+        try
+        {
+            CustomProgram? cp = JsonSerializer.Deserialize<CustomProgram>(obj);
+            if (cp != null)
+                await Storage.SaveCustomProgram(cp);
+        }
+        finally
+        {
+            await ReLoad();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Uploade(string obj)
+    {
+        Console.WriteLine(obj);
+        // throw new NotImplementedException();
+    }
+
+
+}

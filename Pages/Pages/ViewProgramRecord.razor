@@ -1,0 +1,103 @@
+﻿@using global::Pages.Interfaces
+@using global::Pages.Models
+@using global::Pages.Models.StorageModel
+
+@inject IStorage Storage;
+
+<RadzenRow Visible="(PA is {ParentSuper: true , Super: false})" AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit; display: flex !important; flex-direction: column;">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">سوپری</RadzenText>
+</RadzenRow>
+
+<RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; display: contents !important; background-color: inherit;">
+    <RadzenTextBox @bind-Value="PA.Name" style="text-align: center;" Disabled="true" class="w-100" />
+</RadzenRow>
+
+
+@if (PA.Super)
+{
+    <span style="display: none;" class="supery"></span>
+}
+else if (PA.ParentSuper)
+{
+    <span style="display: none;" class="psupery"></span>
+}
+
+@if (PA.DescriptionVisibility)
+{
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; display: contents !important; background-color: inherit;">
+        <RadzenTextArea Disabled="true" @bind-Value="PA.Description" class="w-100" />
+    </RadzenRow>
+}
+
+@if (!PA.Super)
+{
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit;">
+        <RadzenTextBox Value="@GetDetaile(PA)" style="text-align: center; direction: ltr;" Disabled="true" class="w-100" />
+    </RadzenRow>
+}
+
+<RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit; text-align: center; justify-content: center !important;">
+    <RadzenButton style="background-color: #376cbb; color: black; padding: 0;" Click="() => {PA.ShowRecord = !PA.ShowRecord; }">
+        <RadzenIcon Visible="@(!PA.ShowRecord)" Icon="visibility" />
+        <RadzenIcon Visible="@PA.ShowRecord" Icon="visibility_off" />
+    </RadzenButton>
+</RadzenRow>
+
+@if (@PA.ShowRecord)
+{
+    @if (PA.Records.Any())
+    {
+        <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit;">
+
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">رکورد های ثبت شده :</RadzenText>
+            <div class="w-100" style="display: flex; align-items: center; flex-direction: column">
+                @foreach (var Rc in @PA.Records)
+                {
+                    <RadzenText Style="display: block" TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">@Rc.Record</RadzenText>
+                }
+            </div>
+        </RadzenRow>
+    }
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit;">
+        <div class="w-100" style="display: flex; align-items: center;">
+            <RadzenNumeric @bind-Value="NewRecord" Placeholder="رکورد جدید" Style="margin-right: 15px" />
+            <RadzenButton style="background-color: #376cbb; color: black; padding: 0;" Click="async () => await SetRecord(PA, NewRecord)">
+                <RadzenIcon Icon="add" />
+            </RadzenButton>
+        </div>
+    </RadzenRow>
+}
+
+
+
+@code {
+    [Parameter]
+    public ProgramAction PA { set; get; }
+    public int? NewRecord { set; get; }
+
+    public static string GetDetaile(ProgramAction value)
+    {
+        if (value.Super && value.ParentSuper) return "سوپری";
+        if (value.TimeVisibility)
+        {
+            return $"{value.Time} دقیقه";
+        }
+        else
+        {
+            return $"{value.SetCount} * {value.CountPreSet} ";
+        }
+    }
+    private async Task SetRecord(ProgramAction value, int? newRecord)
+    {
+
+        await Storage.SaveRecord(newRecord, value.Id);
+
+        value.Records = value.Records ?? new List<ActionRecord>();
+        ActionRecord record = new() { Id = 1, Record = newRecord };
+        if (value.Records.Any()) record.Id = value.Records.Select(x => x.Id).Max() + 1;
+        value.Records.Add(record);
+
+        NewRecord = null;
+
+    }
+}

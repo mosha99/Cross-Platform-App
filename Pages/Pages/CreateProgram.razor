@@ -1,0 +1,159 @@
+﻿@page "/CreateProgram"
+@using System.Collections.Concurrent
+@using System.Text.Json
+@using global::Pages.Interfaces
+@using global::Pages.Models
+@using global::Pages.Models.StorageModel
+
+@inject IStorage Storage;
+@inject NavigationManager Navigation;
+
+@if (AddMode || EditMode)
+{
+    <AddProgram ProgramAction="VeiwResult" OnSave="SaleActions" OnExit="AddExist"></AddProgram>
+}
+else if (ViewMode)
+{
+    <ViewProgramAction ProgramAction="VeiwResult" OnExit="ViewExist"></ViewProgramAction>
+}
+else
+{
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+        <RadzenColumn>
+            <RadzenButton style="background-color: #376cbb; color: black;" Click="Add"> افزودن </RadzenButton>
+        </RadzenColumn>
+        <RadzenColumn>
+            <RadzenButton style="background-color: #376cbb; color: black;" Click="Save"> ذخیره </RadzenButton>
+        </RadzenColumn>
+        <RadzenColumn>
+            <RadzenButton style="background-color: #376cbb; color: black;" Click="Exit"> بستن </RadzenButton>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+        <RadzenColumn>
+            <RadzenTextBox @bind-Value="ProgramName" Placeholder="نام برنامه" class="w-100" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenDataList Data="@List" TItem="KeyValuePair<int, ProgramActionResult>" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
+        <Template Context="LP">
+            <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px;">
+
+                <RadzenColumn>
+                    <RadzenText TextAlign="TextAlign.Center" TextStyle="TextStyle.H6" TagName="TagName.H5" Class="rz-mb-0">@GetProgramActionsStr(LP.Value)</RadzenText>
+                </RadzenColumn>
+
+                <RadzenButton style="background-color: #30363d;padding: 0;margin: 2px;" Click="() => Delete(LP.Key)">
+                    <RadzenIcon Icon="delete" />
+                </RadzenButton>
+                <RadzenButton style="background-color: #30363d;padding: 0; margin: 2px;" Click="() => Edit(LP.Key)">
+                    <RadzenIcon Icon="edit" />
+                </RadzenButton>
+            </RadzenRow>
+        </Template>
+    </RadzenDataList>
+}
+
+
+@code {
+
+    public bool AddMode = false;
+    public bool EditMode = false;
+    public bool ViewMode = false;
+    public string ProgramName { get; set; }
+    public string Input { get; set; }
+    public bool InputVisiblity = false;
+    public ConcurrentDictionary<int, ProgramActionResult> List = new ConcurrentDictionary<int, ProgramActionResult>();
+
+    public ProgramActionResult VeiwResult;
+
+    private void AddToList(ProgramActionResult obj)
+    {
+
+        if (obj.Id is 0)
+        {
+            if (List.Count > 0) obj.Id = List.Keys.Max() + 1;
+            else obj.Id = 1;
+        }
+
+        List.AddOrUpdate(obj.Id, (id) => obj, (id, PResult) => obj);
+    }
+
+    public void SaleActions(ProgramActionResult obj)
+    {
+        AddToList(obj);
+        AddMode = false;
+        EditMode = false;
+    }
+
+    public void Add()
+    {
+        AddMode = true;
+
+    }
+
+    public static string GetProgramActionsStr(ProgramActionResult actionTimeEnums)
+    {
+        string result = "";
+
+        if (actionTimeEnums?.SelectedEnumProviders is not null)
+            foreach (var timeEnum in actionTimeEnums?.SelectedEnumProviders)
+            {
+                result += " " + AddProgram.GetName(timeEnum) + " -";
+            }
+        if (result.Length > 2)
+            result = result.Substring(0, result.Length - 1);
+
+        return result;
+    }
+
+
+    private void Save()
+    {
+        Storage.SaveCustomProgram(new CustomProgram()
+            {
+                Id = 0,
+                Name = ProgramName,
+                Actions = List.Values.ToList()
+            });
+
+        Navigation.NavigateTo("/");
+    }
+
+    private void View(int Id)
+    {
+        VeiwResult = List[Id];
+        ViewMode = true;
+    }
+    private void Edit(int Id)
+    {
+        VeiwResult = List[Id];
+        EditMode = true;
+    }
+    private void ViewExist()
+    {
+        ViewMode = false;
+        VeiwResult = null;
+    }
+
+    private void Delete(int valueKey)
+    {
+        List.TryRemove(valueKey, out ProgramActionResult deletedResult);
+    }
+
+
+    private void AddExist()
+    {
+        AddMode = false;
+        EditMode = false;
+    }
+
+    private void Exit()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+
+
+}

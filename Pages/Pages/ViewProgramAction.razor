@@ -1,0 +1,129 @@
+﻿@using global::Pages.Interfaces
+@using global::Pages.Models
+@using global::Pages.Models.StorageModel
+
+@inject IStorage Storage;
+
+<RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+    <RadzenColumn>
+        <RadzenTextBox Value="@CreateProgram.GetProgramActionsStr(ProgramAction)" style="text-align: center;" Disabled="true" Placeholder="نام برنامه" class="w-100" />
+    </RadzenColumn>
+</RadzenRow>
+
+
+<RadzenDataList Data="@ProgramActions" TItem="ProgramAction" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
+    <Template Context="PA">
+        <ViewProgramRecord PA="PA"></ViewProgramRecord>
+
+        @if (PA is SuperyProgramAction SPA)
+        {
+            <RadzenDataList Data="@SPA.ChildeActions" TItem="ProgramAction" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
+                <Template Context="SPAC">
+                    <ViewProgramRecord PA="SPAC"></ViewProgramRecord>
+                </Template>
+            </RadzenDataList>
+        }
+    </Template>
+</RadzenDataList>
+
+<RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+    <RadzenColumn>
+        <RadzenButton style="background-color: #376cbb; color: black;" Click="Exit"> بستن </RadzenButton>
+    </RadzenColumn>
+</RadzenRow>
+
+<div style="height: 500px">
+</div>
+
+@code {
+
+    public int? NewRecord { set; get; }
+
+    public List<ProgramAction> ProgramActions { set; get; }
+
+    public List<EnumProvider> EnumProviders { set; get; }
+
+    public List<ActionTimeEnum> SelectedEnumProviders { set; get; }
+
+    [Parameter]
+    public ProgramActionResult ProgramAction { set; get; }
+
+    private string GetHiden(bool hidden) => hidden ? "visibility: hidden;" : "";
+
+    protected override void OnParametersSet()
+    {
+        SelectedEnumProviders = ProgramAction.SelectedEnumProviders;
+        var actions = ProgramAction.ProgramActions;
+
+        ProgramActions = new List<ProgramAction>();
+        foreach (var act in actions)
+        {
+            if (act.ParentSuper)
+            {
+                if (act.Super)
+                {
+                    var parent = ProgramActions.LastOrDefault(x => x is { ParentSuper: true, Super: false });
+                    if (parent is SuperyProgramAction superyProgramAction)
+                    {
+                        superyProgramAction.ChildeActions.Add(act);
+                    }
+                }
+                else
+                {
+                    ProgramActions.Add(new SuperyProgramAction(act));
+                }
+            }
+            else
+            {
+                ProgramActions.Add(act);
+            }
+        }
+
+        base.OnParametersSet();
+    }
+
+
+    [Parameter]
+    public EventCallback OnExit { set; get; }
+
+
+    protected override void OnInitialized()
+    {
+        EnumProviders = Enum.GetValues(typeof(ActionTimeEnum)).Cast<ActionTimeEnum>().Select(x => new EnumProvider(AddProgram.GetName, x)).ToList();
+        base.OnInitialized();
+    }
+
+
+
+    private async Task Exit()
+    {
+        await OnExit.InvokeAsync();
+    }
+
+    private async Task SetRecord(ProgramAction value, int? newRecord)
+    {
+
+        await Storage.SaveRecord(newRecord, value.Id);
+
+        value.Records = value.Records ?? new List<ActionRecord>();
+        ActionRecord record = new() { Id = 1, Record = newRecord };
+        if (value.Records.Any()) record.Id = value.Records.Select(x => x.Id).Max() + 1;
+        value.Records.Add(record);
+
+        NewRecord = null;
+
+    }
+
+    private string GetDetaile(ProgramAction value)
+    {
+        if (value.TimeVisibility)
+        {
+            return $"{value.Time} دقیقه";
+        }
+        else
+        {
+            return $"{value.SetCount} * {value.CountPreSet} ";
+        }
+    }
+
+}

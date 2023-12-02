@@ -1,0 +1,230 @@
+﻿@using System.Collections
+@using global::Pages.Interfaces
+@using global::Pages.Models
+
+@inject IStorage Storage;
+
+@if (InView)
+{
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+        <RadzenColumn>
+            <RadzenTextBox Value="@CreateProgram.GetProgramActionsStr(ProgramAction)" style="text-align: center;" Disabled="true" Placeholder="نام برنامه" class="w-100" />
+        </RadzenColumn>
+    </RadzenRow>
+}
+else
+{
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; display: contents !important; background-color: inherit;">
+        <RadzenColumn>
+            <RadzenListBox @bind-Value=@SelectedEnumProviders Data=@EnumProviders TextProperty="Name" ValueProperty="Item"
+                           Multiple=true AllowClear=true Placeholder="روز تمرین" Style="width: 100%; width: 100%;border: none;background-color: #e9eaed;" />
+        </RadzenColumn>
+    </RadzenRow>
+}
+
+
+<hr style="color: white;margin-top: 30px;border-top: 4px dotted #8c8b8b;background-color: inherit;" />
+
+<RadzenDataList Data="@ProgramActions" TItem="ProgramAction" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
+    <Template Context="PA">
+        <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; display: contents !important; background-color: inherit;">
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <RadzenText TextStyle="TextStyle.Subtitle2">عنوان</RadzenText>
+
+                <RadzenSpeechToTextButton Style="margin-right: 5px;" Change="@(args => OnSpeechCaptured(args, false, (s) => PA.Name = s))" Language="fa-Ir">
+                </RadzenSpeechToTextButton>
+
+                <RadzenButton style="background-color: #30363d; padding: 0; margin: 2px;    margin-right: auto;" Click="() => { ProgramActions.RemoveAll(x=>x.Id == PA.Id); }">
+                    <RadzenIcon Icon="delete" />
+                </RadzenButton>
+            </div>
+
+            <RadzenAutoComplete @bind-Value=@PA.Name Data=@Names TextProperty="CompanyName" LoadData=@OnLoadData class="w-100" />
+
+        </RadzenRow>
+
+        <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px;  background-color: inherit; display: flex !important;flex-direction: column;">
+            <div style="display: flex; flex-direction: row;justify-content: space-around!important; width: 100%;">
+                <div style="text-align: center;">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">نمایش شرح</RadzenText>
+                    <RadzenSwitch @bind-Value="PA.DescriptionVisibility" />
+                </div>
+
+                <div style="text-align: center; @GetHiden(PA.Super)">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">تمرین تایمی</RadzenText>
+                    <RadzenSwitch @bind-Value="PA.TimeVisibility" />
+                </div>
+
+            </div>
+            <div style="display: flex; flex-direction: row;justify-content: space-around!important; width: 100%;">
+
+                <div style="text-align: center;">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">سوپری</RadzenText>
+                    <RadzenSwitch @bind-Value="PA.ParentSuper" />
+                </div>
+
+                <div style="text-align: center; @GetHiden(!PA.ParentSuper)  ">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">وابسته</RadzenText>
+                    <RadzenSwitch @bind-Value="PA.Super" />
+                </div>
+
+            </div>
+        </RadzenRow>
+
+        @if (PA.Super)
+        {
+            <span style="display: none;" class="supery"></span>
+        }
+        else if (PA.ParentSuper)
+        {
+            <span style="display: none;" class="psupery"></span>
+        }
+
+        @if (PA.DescriptionVisibility)
+        {
+            <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px;display: contents !important;background-color: inherit;">
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">شرح</RadzenText>
+                <RadzenTextArea @bind-Value="PA.Description" class="w-100" />
+            </RadzenRow>
+        }
+
+        @if (!PA.Super)
+        {
+
+            @if (PA.TimeVisibility)
+            {
+                <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit;">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">تایم</RadzenText>
+                    <RadzenNumeric @bind-Value="@PA.Time" Style="margin-right: 15px" />
+                </RadzenRow>
+            }
+            else
+            {
+                <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit;">
+                    <div class="w-100" style="display: flex; align-items: center;">
+                        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">ست</RadzenText>
+                        <RadzenNumeric @bind-Value="@PA.SetCount" Style="margin-right: 20px" />
+                    </div>
+                </RadzenRow>
+                <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; background-color: inherit;">
+                    <div class="w-100" style="display: flex; align-items: center;">
+                        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">تعداد</RadzenText>
+                        <RadzenNumeric @bind-Value="@PA.CountPreSet" Style="margin-right: 15px" />
+                    </div>
+                </RadzenRow>
+            }
+        }
+    </Template>
+</RadzenDataList>
+
+<RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+    <RadzenColumn>
+        <RadzenButton style="background-color: #376cbb; color: black;" Click="Add"> افزودن </RadzenButton>
+    </RadzenColumn>
+
+    <RadzenColumn>
+        <RadzenButton style="background-color: #376cbb; color: black;" Click="Save"> ذخیره </RadzenButton>
+    </RadzenColumn>
+
+    <RadzenColumn>
+        <RadzenButton style="background-color: #376cbb; color: black;" Click="Save"> لغو </RadzenButton>
+    </RadzenColumn>
+</RadzenRow>
+
+<div style="height: 500px">
+</div>
+
+@code {
+    public List<ProgramAction> ProgramActions;
+    public List<EnumProvider> EnumProviders;
+    public List<ActionTimeEnum> SelectedEnumProviders;
+
+    [Parameter]
+    public EventCallback<ProgramActionResult> OnSave { set; get; }
+
+    [Parameter]
+    public EventCallback OnExit { set; get; }
+
+    [Parameter]
+    public ProgramActionResult ProgramAction { set; get; }
+
+    [Parameter]
+    public bool InView { set; get; } = false;
+
+    protected override void OnParametersSet()
+    {
+        if (ProgramAction != null)
+        {
+            SelectedEnumProviders = ProgramAction.SelectedEnumProviders;
+            ProgramActions = ProgramAction.ProgramActions;
+        }
+        base.OnParametersSet();
+    }
+
+    private string GetHiden(bool hidden) => hidden ? "visibility: hidden;" : "";
+
+    protected override void OnInitialized()
+    {
+        ProgramActions = new List<ProgramAction>() { new ProgramAction() };
+        EnumProviders = Enum.GetValues(typeof(ActionTimeEnum)).Cast<ActionTimeEnum>().Select(x => new EnumProvider(GetName, x)).ToList();
+        base.OnInitialized();
+    }
+
+    void OnSpeechCaptured(string speechValue, bool updateTextArea, Action<string> action)
+    {
+        action(speechValue);
+    }
+
+    private void Add()
+    {
+        int id = 1;
+        if (ProgramActions.Any()) id = ProgramActions.Select(x => x.Id).Max() + 1;
+
+        ProgramActions.Add(new ProgramAction() { Id = id });
+    }
+
+    public static string GetName(object item)
+    {
+        switch ((ActionTimeEnum)item)
+        {
+            case ActionTimeEnum.BeforeTraining:
+                return "قبل تمرین";
+            case ActionTimeEnum.BeforeAndAfterTraining:
+                return "قبل و بعد تمرین";
+            case ActionTimeEnum.AfterTraining:
+                return "بعد تمرین";
+            case ActionTimeEnum.Saturday:
+                return "شنبه";
+            case ActionTimeEnum.Sunday:
+                return "یکشنبه";
+            case ActionTimeEnum.Monday:
+                return "دو شنبه";
+            case ActionTimeEnum.Tuesday:
+                return "سه شنبه";
+            case ActionTimeEnum.Wednesday:
+                return "چهارشنبه";
+            case ActionTimeEnum.Thursday:
+                return "پنج شنبه";
+            default:
+                throw new ArgumentOutOfRangeException(nameof(item), item, null);
+        }
+    }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync(new ProgramActionResult(ProgramActions, SelectedEnumProviders) { Id = ProgramAction?.Id ?? 0 });
+    }
+
+    private async Task Exit()
+    {
+        await OnSave.InvokeAsync();
+    }
+
+    private async Task OnLoadData(LoadDataArgs args)
+    {
+        Names = await Storage.SearchForName(args.Filter);
+    }
+
+    public List<string> Names { get; set; }
+
+}

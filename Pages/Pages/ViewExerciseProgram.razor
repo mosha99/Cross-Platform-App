@@ -1,0 +1,117 @@
+﻿@page "/View/{Id}"
+@using System.Collections.Concurrent
+@using global::Pages.Interfaces
+@using global::Pages.Models
+
+@inject IStorage Storage;
+@inject NavigationManager Navigation;
+
+@if (ViewMode)
+{
+    <ViewProgramAction ProgramAction="VeiwResult" OnExit="ViewExist"></ViewProgramAction>
+}
+else if (EditMode)
+{
+    <AddProgram InView="true" ProgramAction="VeiwResult" OnSave="SaleActions" OnExit="() => {EditMode = false;}"></AddProgram>
+}
+else
+{
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+        <RadzenColumn>
+            <RadzenButton style="background-color: #376cbb; color: black;" Click="Exit"> بستن </RadzenButton>
+        </RadzenColumn>
+
+        <RadzenColumn>
+            <RadzenButton style="background-color: #376cbb; color: black;" Click="() => { CanEdit = !CanEdit; }"> ویرایش </RadzenButton>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; text-align: center;">
+        <RadzenColumn>
+            <RadzenTextBox @bind-Value="ProgramName" Disabled="true" Placeholder="نام برنامه" class="w-100" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenDataList Data="@List" TItem="KeyValuePair<int, ProgramActionResult>" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
+        <Template Context="LP">
+            <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px;">
+
+                <RadzenColumn>
+                    <RadzenText TextAlign="TextAlign.Center" TextStyle="TextStyle.H6" TagName="TagName.H5" Class="rz-mb-0">@CreateProgram.GetProgramActionsStr(LP.Value)</RadzenText>
+                </RadzenColumn>
+
+                <RadzenButton style="background-color: #30363d;padding: 0;margin: 2px;" Click="() => View(LP.Key)">
+                    <RadzenIcon Icon="visibility" />
+                </RadzenButton>
+
+                <RadzenButton Visible="CanEdit" style="background-color: #30363d;padding: 0;margin: 2px;" Click="() => Edit(LP.Key)">
+                    <RadzenIcon Icon="edit" />
+                </RadzenButton>
+            </RadzenRow>
+        </Template>
+    </RadzenDataList>
+}
+
+
+
+
+
+@code {
+
+    public string ProgramName { get; set; }
+
+    public ConcurrentDictionary<int, ProgramActionResult> List = new ConcurrentDictionary<int, ProgramActionResult>();
+
+    public ProgramActionResult VeiwResult;
+
+    public bool CanEdit { get; set; } = false;
+
+    [Parameter]
+    public string Id { get; set; }
+
+    public bool EditMode { get; set; }
+
+    public bool ViewMode = false;
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await Storage.GetExerciseProgram(int.Parse(Id));
+
+        ProgramName = result.Name;
+
+        List = new ConcurrentDictionary<int, ProgramActionResult>(result.Actions.Select(x => new KeyValuePair<int, ProgramActionResult>(x.Id, x)));
+
+        await base.OnParametersSetAsync();
+    }
+
+    private void ViewExist()
+    {
+        ViewMode = false;
+        VeiwResult = null;
+    }
+
+    private void View(int Id)
+    {
+        VeiwResult = List[Id];
+        ViewMode = true;
+    }
+    private async Task Exit()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+
+    private async Task SaleActions(ProgramActionResult actionResult)
+    {
+        await Storage.SaveProgramActionResult(actionResult);
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task Edit(int Id)
+    {
+        VeiwResult = List[Id];
+        EditMode = true;
+    }
+
+}
