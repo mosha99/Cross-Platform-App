@@ -17,7 +17,7 @@ public class Storage : IStorage
     public static List<CustomProgram> List = new List<CustomProgram>();
 
     private async Task Save() => await _localStorageService.SetItemAsync("Data", List);
-    private async Task Load() => List = await _localStorageService.GetItemAsync<List<CustomProgram>>("Data");
+    private async Task Load() => List = await _localStorageService.GetItemAsync<List<CustomProgram>>("Data") ?? new List<CustomProgram>();
 
 
     public async Task<List<CustomProgram>> GetExercisePrograms()

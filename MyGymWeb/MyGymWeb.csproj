@@ -16,8 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pages\Pages.csproj" />
-    <ProjectReference Include="..\Report.Model\Report.Model.csproj" />
-    <ProjectReference Include="..\Report\Report.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,66 @@
+﻿@page "/ViewCurrentDay/{Id}"
+
+@using global::Pages.Models
+@using global::Pages.Interfaces
+@using global::Pages.Models.StorageModel
+
+@inject NavigationManager Navigation;
+@inject IStorage Storage;
+
+
+
+<ViewProgramAction ProgramAction="VeiwResult" OnExit="ViewExist"></ViewProgramAction>
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; }
+
+    public ProgramActionResult VeiwResult;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await Storage.GetExerciseProgram(int.Parse(Id));
+
+        ActionTimeEnum? timeEnum = GetCurrentTimeEnum();
+
+        if (timeEnum == null) ViewExist();
+
+        IProgramListDecorator decorator = new BeforeAndAfterProgramsDecorator(new DaysDecorator(result, timeEnum.Value), result);
+
+        VeiwResult = new ProgramActionResult()
+            {
+                ProgramActions = new List<ProgramAction>(),
+                SelectedEnumProviders = new List<ActionTimeEnum>() { timeEnum.Value }
+            };
+
+        decorator.Decorate(VeiwResult.ProgramActions);
+    }
+
+
+
+    public ActionTimeEnum? GetCurrentTimeEnum()
+    {
+        switch (DateTime.Now.DayOfWeek)
+        {
+            case DayOfWeek.Sunday: return ActionTimeEnum.Sunday;
+            case DayOfWeek.Monday: return ActionTimeEnum.Monday;
+            case DayOfWeek.Tuesday: return ActionTimeEnum.Tuesday;
+            case DayOfWeek.Wednesday: return ActionTimeEnum.Wednesday;
+            case DayOfWeek.Thursday: return ActionTimeEnum.Thursday;
+            case DayOfWeek.Saturday: return ActionTimeEnum.Saturday;
+            default: return null;
+        }
+    }
+
+
+
+
+    private void ViewExist()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+
+
+}

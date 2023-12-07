@@ -46,12 +46,13 @@
     public List<ActionTimeEnum> SelectedEnumProviders { set; get; }
 
     [Parameter]
-    public ProgramActionResult ProgramAction { set; get; }
+    public ProgramActionResult? ProgramAction { set; get; }
 
     private string GetHiden(bool hidden) => hidden ? "visibility: hidden;" : "";
 
     protected override void OnParametersSet()
     {
+        if (ProgramAction == null) return;
         SelectedEnumProviders = ProgramAction.SelectedEnumProviders;
         var actions = ProgramAction.ProgramActions;
 

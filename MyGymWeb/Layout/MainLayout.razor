@@ -1,7 +1,8 @@
 ﻿@using Pages.Pages
-@using Report
-@using Report.Model
-@using Report.Res
+@using Pages.Interfaces
+@using Pages.Models.StorageModel
+@using System.Text
+@using System.Text.Json
 
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
@@ -13,34 +14,3 @@
         </article>
     </main>
 </div>
-
-@code
-{
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-
-        Home.Report = async ( dataObj) =>
-        {
-            ReportCreator rc = new ReportCreator();
-
-            await using MemoryStream stream = new MemoryStream();
-
-            var dataList =
-                dataObj.Actions.SelectMany(
-                    x => x.ProgramActions,
-                    (result, action) => new ReportModel()
-                    {
-                        Category =CreateProgram.GetProgramActionsStr(result),
-                        Count = ViewProgramRecord.GetDetaile(action),
-                        Description = action.Description,
-                        Name = action.Name
-                    });
-
-            rc.CreateReport(stream, CustomReportResource.TestReport, new KeyValuePair<string, object>("ReportModel", dataList));
-
-            await JS.InvokeVoidAsync("downloadFileFromStream", "test.pdf", stream.GetBuffer());
-        };
-
-    }
-}

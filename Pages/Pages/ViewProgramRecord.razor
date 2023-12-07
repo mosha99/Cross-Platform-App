@@ -12,16 +12,6 @@
     <RadzenTextBox @bind-Value="PA.Name" style="text-align: center;" Disabled="true" class="w-100" />
 </RadzenRow>
 
-
-@if (PA.Super)
-{
-    <span style="display: none;" class="supery"></span>
-}
-else if (PA.ParentSuper)
-{
-    <span style="display: none;" class="psupery"></span>
-}
-
 @if (PA.DescriptionVisibility)
 {
     <RadzenRow AlignItems="AlignItems.Center" Gap="0" style="padding: 8px; display: contents !important; background-color: inherit;">
@@ -68,6 +58,14 @@ else if (PA.ParentSuper)
     </RadzenRow>
 }
 
+@if (PA.Super)
+{
+    <span style="visibility: hidden;" class="supery">*</span>
+}
+else if (PA.ParentSuper)
+{
+    <span style="visibility: hidden;" class="psupery">*</span>
+}
 
 
 @code {
